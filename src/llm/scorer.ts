@@ -1,4 +1,5 @@
 import { callHaiku } from "./client";
+import { loadPromptTemplate } from "./prompts";
 import type { Post, Interests } from "../types";
 import { posts as db } from "../db-local";
 import * as yaml from "yaml";
@@ -9,32 +10,19 @@ export interface ScoreResult {
 }
 
 function buildScoringPrompt(interests: Interests, post: Post): string {
+	const template = loadPromptTemplate("scoring");
 	const interestsYaml = yaml.stringify(interests.interests);
 	const excludeList = interests.exclude.join(", ");
 
-	return `Ты — фильтр ML/AI новостей. Оцени релевантность поста для пользователя.
-
-## Профиль пользователя:
-${interests.profile}
-
-## Интересы (high = 0.8-1.0, medium = 0.5-0.7, low = 0.2-0.4):
-${interestsYaml}
-
-## Исключить (score = 0):
-${excludeList}
-
-## Пост для оценки:
-- Источник: ${post.source}
-- Название: ${post.name}
-- Автор: ${post.username}
-- Описание: ${post.description || "(нет описания)"}
-- Звёзды/лайки: ${post.stars}
-
-## Задача:
-Оцени релевантность поста (0.0-1.0) на основе интересов пользователя.
-
-Ответь ТОЛЬКО валидным JSON (без markdown):
-{"score": 0.0, "matched_interest": "название интереса или null"}`;
+	return template
+		.replace("{{profile}}", interests.profile)
+		.replace("{{interests_yaml}}", interestsYaml)
+		.replace("{{exclude_list}}", excludeList)
+		.replace("{{post.source}}", post.source)
+		.replace("{{post.name}}", post.name || "")
+		.replace("{{post.username}}", post.username || "")
+		.replace("{{post.description}}", post.description || "(no description)")
+		.replace("{{post.stars}}", String(post.stars));
 }
 
 function parseScoreResponse(response: string): ScoreResult {

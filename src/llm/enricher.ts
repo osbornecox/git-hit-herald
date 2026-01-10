@@ -1,36 +1,26 @@
 import { callSonnet } from "./client";
-import type { Post, Interests } from "../types";
+import { loadPromptTemplate } from "./prompts";
+import type { Post, Config } from "../types";
 import { posts as db } from "../db-local";
 
 export interface EnrichmentResult {
-	summary_ru: string;
-	relevance_ru: string;
+	summary: string;
+	relevance: string;
 }
 
-function buildEnrichmentPrompt(post: Post, interests: Interests): string {
-	return `Ты — помощник для анализа ML/AI новостей на русском языке.
+function buildEnrichmentPrompt(post: Post, config: Config): string {
+	const template = loadPromptTemplate("enrichment");
 
-## Пост:
-- Источник: ${post.source}
-- Название: ${post.name}
-- Автор: ${post.username}
-- Описание: ${post.description || "(нет описания)"}
-- URL: ${post.url}
-- Звёзды/лайки: ${post.stars}
-- Совпавший интерес: ${post.matched_interest || "общий интерес к ML/AI"}
-
-## Профиль пользователя:
-${interests.profile}
-
-## Задача:
-Напиши на русском языке два коротких абзаца:
-
-1. **Про что:** Кратко опиши суть проекта/новости (2-3 предложения). Что это, для чего нужно, какую проблему решает.
-
-2. **Почему в фиде:** Объясни, почему это релевантно для пользователя, основываясь на его интересах (1-2 предложения).
-
-Ответь ТОЛЬКО валидным JSON (без markdown):
-{"summary_ru": "Про что: ...", "relevance_ru": "Почему в фиде: ..."}`;
+	return template
+		.replace("{{language}}", config.language)
+		.replace("{{post.source}}", post.source)
+		.replace("{{post.name}}", post.name || "")
+		.replace("{{post.username}}", post.username || "")
+		.replace("{{post.description}}", post.description || "(no description)")
+		.replace("{{post.url}}", post.url)
+		.replace("{{post.stars}}", String(post.stars))
+		.replace("{{post.matched_interest}}", post.matched_interest || "general ML/AI interest")
+		.replace("{{profile}}", config.profile);
 }
 
 function parseEnrichmentResponse(response: string): EnrichmentResult {
@@ -39,44 +29,44 @@ function parseEnrichmentResponse(response: string): EnrichmentResult {
 		if (jsonMatch) {
 			const parsed = JSON.parse(jsonMatch[0]);
 			return {
-				summary_ru: parsed.summary_ru || "",
-				relevance_ru: parsed.relevance_ru || "",
+				summary: parsed.summary || "",
+				relevance: parsed.relevance || "",
 			};
 		}
 	} catch (e) {
 		console.error("Failed to parse LLM enrichment response:", response);
 	}
-	return { summary_ru: "", relevance_ru: "" };
+	return { summary: "", relevance: "" };
 }
 
-export async function enrichPost(post: Post, interests: Interests): Promise<EnrichmentResult> {
-	const prompt = buildEnrichmentPrompt(post, interests);
+export async function enrichPost(post: Post, config: Config): Promise<EnrichmentResult> {
+	const prompt = buildEnrichmentPrompt(post, config);
 
 	try {
 		const response = await callSonnet(prompt);
 		return parseEnrichmentResponse(response);
 	} catch (error) {
 		console.error(`Error enriching post ${post.id}:`, error);
-		return { summary_ru: "", relevance_ru: "" };
+		return { summary: "", relevance: "" };
 	}
 }
 
 export async function enrichPosts(
 	postsToEnrich: Post[],
-	interests: Interests,
+	config: Config,
 	options: { delayMs?: number } = {}
 ): Promise<void> {
 	const { delayMs = 500 } = options;
 
-	console.log(`Enriching ${postsToEnrich.length} top posts with Russian descriptions...`);
+	console.log(`Enriching ${postsToEnrich.length} top posts (language: ${config.language})...`);
 
 	for (let i = 0; i < postsToEnrich.length; i++) {
 		const post = postsToEnrich[i];
 
-		const result = await enrichPost(post, interests);
+		const result = await enrichPost(post, config);
 
-		if (result.summary_ru && result.relevance_ru) {
-			db.updateEnrichment(post.id, post.source, result.summary_ru, result.relevance_ru);
+		if (result.summary && result.relevance) {
+			db.updateEnrichment(post.id, post.source, result.summary, result.relevance);
 			console.log(`  Enriched ${post.source}/${post.name}`);
 		} else {
 			console.log(`  Failed to enrich ${post.source}/${post.name}`);

@@ -4,77 +4,72 @@ import * as path from "path";
 
 const OUTPUT_DIR = path.join(process.cwd(), "data");
 
-export function exportToMarkdown(limit: number = 50): string {
-	const topPosts = posts.query({ filter: "past_week", sources: ["GitHub", "HuggingFace", "Reddit", "Replicate"] });
-
-	// Sort by relevance_score first, then by stars
-	const sorted = topPosts
-		.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0))
-		.slice(0, limit);
-
-	const date = new Date().toISOString().slice(0, 10);
-	let md = `# ML/AI Дайджест — ${date}\n\n`;
-	md += `Всего постов: ${topPosts.length} | Показано: ${sorted.length}\n\n`;
-	md += `---\n\n`;
-
-	for (let i = 0; i < sorted.length; i++) {
-		const post = sorted[i];
-		const score = post.relevance_score ? `[${(post.relevance_score * 100).toFixed(0)}%]` : "";
-		const icon = post.source === "github" ? "⭐" : post.source === "huggingface" ? "🤗" : post.source === "reddit" ? "👽" : "®️";
-
-		md += `### ${i + 1}. ${post.name} ${score}\n\n`;
-		md += `${icon} **${post.source}** | ${post.stars} stars | [${post.username}/${post.name}](${post.url})\n\n`;
-
-		if (post.summary_ru) {
-			md += `${post.summary_ru}\n\n`;
-		}
-		if (post.relevance_ru) {
-			md += `> ${post.relevance_ru}\n\n`;
-		}
-		if (!post.summary_ru && post.description) {
-			md += `${post.description}\n\n`;
-		}
-
-		md += `---\n\n`;
+function escapeCsv(str: string | null | undefined): string {
+	if (!str) return "";
+	// Escape quotes and wrap in quotes if contains comma, quote, or newline
+	const escaped = str.replace(/"/g, '""');
+	if (escaped.includes(",") || escaped.includes('"') || escaped.includes("\n")) {
+		return `"${escaped}"`;
 	}
-
-	return md;
+	return escaped;
 }
 
-export function exportToCSV(): string {
+export function exportToCSV(): void {
 	const allPosts = posts.query({ filter: "past_week", sources: ["GitHub", "HuggingFace", "Reddit", "Replicate"] });
 
-	const sorted = allPosts.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+	// Sort: newest first (by inserted_at), then by relevance_score
+	const sorted = allPosts.sort((a, b) => {
+		// First by inserted_at (newest first)
+		const dateA = a.scored_at || a.created_at || "";
+		const dateB = b.scored_at || b.created_at || "";
+		if (dateB > dateA) return 1;
+		if (dateB < dateA) return -1;
+		// Then by relevance_score
+		return (b.relevance_score || 0) - (a.relevance_score || 0);
+	});
 
-	const headers = ["score", "source", "name", "stars", "url", "summary_ru", "relevance_ru", "description"];
+	// All fields from DB
+	const headers = [
+		"id",
+		"source",
+		"username",
+		"name",
+		"stars",
+		"description",
+		"url",
+		"created_at",
+		"relevance_score",
+		"matched_interest",
+		"summary",
+		"relevance",
+		"scored_at",
+	];
+
 	const rows = sorted.map(p => [
-		((p.relevance_score || 0) * 100).toFixed(0),
-		p.source,
-		`"${(p.name || "").replace(/"/g, '""')}"`,
+		escapeCsv(p.id),
+		escapeCsv(p.source),
+		escapeCsv(p.username),
+		escapeCsv(p.name),
 		p.stars,
-		p.url,
-		`"${(p.summary_ru || "").replace(/"/g, '""')}"`,
-		`"${(p.relevance_ru || "").replace(/"/g, '""')}"`,
-		`"${(p.description || "").replace(/"/g, '""')}"`,
-	]);
+		escapeCsv(p.description),
+		escapeCsv(p.url),
+		escapeCsv(p.created_at),
+		p.relevance_score?.toFixed(2) || "",
+		escapeCsv(p.matched_interest),
+		escapeCsv(p.summary),
+		escapeCsv(p.relevance),
+		escapeCsv(p.scored_at),
+	].join(","));
 
-	return [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+	const csv = [headers.join(","), ...rows].join("\n");
+
+	const csvPath = path.join(OUTPUT_DIR, "feed.csv");
+	fs.writeFileSync(csvPath, csv);
+	console.log(`Saved: ${csvPath} (${sorted.length} posts)`);
 }
 
 export function saveExports(): void {
-	const date = new Date().toISOString().slice(0, 10);
-
-	// Markdown
-	const md = exportToMarkdown(50);
-	const mdPath = path.join(OUTPUT_DIR, `digest-${date}.md`);
-	fs.writeFileSync(mdPath, md);
-	console.log(`Saved: ${mdPath}`);
-
-	// CSV
-	const csv = exportToCSV();
-	const csvPath = path.join(OUTPUT_DIR, `posts-${date}.csv`);
-	fs.writeFileSync(csvPath, csv);
-	console.log(`Saved: ${csvPath}`);
+	exportToCSV();
 }
 
 // Run if called directly

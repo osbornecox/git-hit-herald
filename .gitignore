@@ -26,7 +26,15 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
+.env
 .env*.local
+
+# local config (personal data)
+config/config.yaml
+
+# local database
+data/*.db
+data/*.db-*
 
 # typescript
 *.tsbuildinfo

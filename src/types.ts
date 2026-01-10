@@ -1,7 +1,9 @@
-import type { Context } from "hono";
-
-export type AppContext = Context<{ Bindings: Env }>;
-export type HandleArgs = [AppContext];
+// Environment variables for local mode
+export interface Env {
+	ANTHROPIC_API_KEY?: string;
+	REPLICATE_API_TOKEN?: string;
+	PORT?: string;
+}
 
 export interface Post {
 	id: string;
@@ -16,8 +18,8 @@ export interface Post {
 	// LLM scoring fields
 	relevance_score?: number;      // 0.0 - 1.0
 	matched_interest?: string;     // which interest matched
-	summary_ru?: string;           // "Про что: ..."
-	relevance_ru?: string;         // "Почему в фиде: ..."
+	summary?: string;              // post summary in configured language
+	relevance?: string;            // relevance explanation in configured language
 	scored_at?: string;            // when LLM scored this post
 }
 
@@ -29,4 +31,30 @@ export interface Interests {
 		low: string[];
 	};
 	exclude: string[];
+}
+
+// Source-specific configuration
+export interface SourceConfig {
+	github: {
+		min_stars: number;
+	};
+	reddit: {
+		subreddits: string[];
+		min_score: number;
+		flair_filters?: Record<string, string[]>;
+	};
+	huggingface: {
+		min_likes: number;
+		min_downloads: number;
+	};
+	replicate: {
+		min_runs: number;
+	};
+	spam_keywords: string[];
+}
+
+// Full application config (loaded from config.yaml)
+export interface Config extends Interests {
+	language: string;  // Language for enrichment (e.g., "ru", "en")
+	sources: SourceConfig;
 }

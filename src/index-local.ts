@@ -20,9 +20,9 @@ interface PostData {
 	url: string;
 	stars: number;
 	relevance_score?: number;
-	summary_ru?: string;
-	relevance_ru?: string;
-	has_russian?: boolean;
+	summary?: string;
+	relevance?: string;
+	has_enrichment?: boolean;
 }
 
 function preparePostData(post: Post, index: number): PostData {
@@ -46,9 +46,9 @@ function preparePostData(post: Post, index: number): PostData {
 		url: post.url,
 		stars: post.stars,
 		relevance_score: post.relevance_score,
-		summary_ru: post.summary_ru,
-		relevance_ru: post.relevance_ru,
-		has_russian: !!(post.summary_ru && post.relevance_ru),
+		summary: post.summary,
+		relevance: post.relevance,
+		has_enrichment: !!(post.summary && post.relevance),
 	};
 }
 

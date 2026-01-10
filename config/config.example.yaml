@@ -1,0 +1,73 @@
+# HypeSeeker Configuration
+# Copy this file to config.yaml and customize for your needs
+# API keys should be stored in .env file (not here)
+
+# Language for enrichment and summaries
+language: ru
+
+# Your profile for LLM context
+profile: |
+  ML/AI engineer interested in practical applications.
+  Focus on agents, LLMs, and developer tools.
+
+# Interest categories with priority weights
+interests:
+  high:
+    - Agent systems and multi-agent architectures
+    - LLM reasoning, chain-of-thought, planning
+    - RAG and retrieval systems
+    - AI-native developer tools
+
+  medium:
+    - Fine-tuning and PEFT methods (LoRA, QLoRA)
+    - New transformer architectures
+    - Embeddings and vector databases
+    - Prompt engineering
+
+  low:
+    - Image generation (Stable Diffusion, DALL-E)
+    - Audio and video models
+    - Basic tutorials and courses
+
+# Topics to exclude (relevance = 0)
+exclude:
+  - NFT, crypto, blockchain, web3
+  - Game bots and cheats
+  - Spam bots
+  - Pure academic benchmarks without practical use
+  - Voice cloning for fraud
+
+# Source-specific settings
+sources:
+  github:
+    min_stars: 10
+
+  reddit:
+    subreddits:
+      - machinelearning
+      - localllama
+      - StableDiffusion
+    min_score: 20
+    flair_filters:
+      StableDiffusion:
+        - News
+        - "Resource | Update"
+
+  huggingface:
+    min_likes: 5
+    min_downloads: 1
+
+  replicate:
+    min_runs: 10
+
+  spam_keywords:
+    - nft
+    - crypto
+    - blockchain
+    - web3
+    - telegram
+    - clicker
+    - solana
+    - stealer
+    - hack
+    - cheat

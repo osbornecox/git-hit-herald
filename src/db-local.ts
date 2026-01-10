@@ -29,8 +29,8 @@ function initSchema(): void {
 			created_at TEXT,
 			relevance_score REAL,
 			matched_interest TEXT,
-			summary_ru TEXT,
-			relevance_ru TEXT,
+			summary TEXT,
+			relevance TEXT,
 			scored_at TEXT,
 			inserted_at TEXT DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (id, source)
@@ -103,15 +103,15 @@ export const posts = {
 	upsert(post: Post): void {
 		const database = getDb();
 		const stmt = database.prepare(`
-			INSERT INTO posts (id, source, username, name, stars, description, url, created_at, relevance_score, matched_interest, summary_ru, relevance_ru, scored_at)
+			INSERT INTO posts (id, source, username, name, stars, description, url, created_at, relevance_score, matched_interest, summary, relevance, scored_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(id, source) DO UPDATE SET
 				stars = excluded.stars,
 				description = excluded.description,
 				relevance_score = COALESCE(excluded.relevance_score, relevance_score),
 				matched_interest = COALESCE(excluded.matched_interest, matched_interest),
-				summary_ru = COALESCE(excluded.summary_ru, summary_ru),
-				relevance_ru = COALESCE(excluded.relevance_ru, relevance_ru),
+				summary = COALESCE(excluded.summary, summary),
+				relevance = COALESCE(excluded.relevance, relevance),
 				scored_at = COALESCE(excluded.scored_at, scored_at)
 		`);
 
@@ -126,8 +126,8 @@ export const posts = {
 			post.created_at,
 			post.relevance_score || null,
 			post.matched_interest || null,
-			post.summary_ru || null,
-			post.relevance_ru || null,
+			post.summary || null,
+			post.relevance || null,
 			post.scored_at || null
 		);
 	},
@@ -160,7 +160,7 @@ export const posts = {
 		const stmt = database.prepare(`
 			SELECT * FROM posts
 			WHERE relevance_score >= ?
-			  AND summary_ru IS NULL
+			  AND summary IS NULL
 			ORDER BY relevance_score DESC, stars DESC
 			LIMIT ?
 		`);
@@ -178,14 +178,14 @@ export const posts = {
 		stmt.run(score, matchedInterest, new Date().toISOString(), id, source);
 	},
 
-	updateEnrichment(id: string, source: string, summaryRu: string, relevanceRu: string): void {
+	updateEnrichment(id: string, source: string, summary: string, relevance: string): void {
 		const database = getDb();
 		const stmt = database.prepare(`
 			UPDATE posts
-			SET summary_ru = ?, relevance_ru = ?
+			SET summary = ?, relevance = ?
 			WHERE id = ? AND source = ?
 		`);
-		stmt.run(summaryRu, relevanceRu, id, source);
+		stmt.run(summary, relevance, id, source);
 	},
 
 	close(): void {

@@ -1,0 +1,14 @@
+HypeSeeker
+Copyright 2025 Oleg Kubyshkin
+
+This project is a derivative work based on python-repos:
+https://github.com/andreasjansson/python-repos
+
+Original work Copyright 2023 Andreas Jansson / Replicate, Inc.
+Licensed under the Apache License, Version 2.0
+
+Modifications include:
+- Local-first architecture with SQLite storage
+- LLM-based relevance scoring and content enrichment
+- Personalized interest filtering via YAML configuration
+- Russian language summaries

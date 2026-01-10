@@ -1,19 +1,20 @@
 import Replicate from "replicate";
-import type { Post } from "./types";
+import type { Post, Env, SourceConfig } from "./types";
 import { hashStringToInt, truncateWithoutBreakingWords, base36ToInt } from "./utils";
 
-export async function fetchReplicatePosts(env: Env): Promise<Post[]> {
+export async function fetchReplicatePosts(env: Env, sourceConfig: SourceConfig): Promise<Post[]> {
 	const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
 	const posts: Post[] = [];
 	const limit = 1000;
 	const oneWeekAgo = new Date();
 	oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+	const minRuns = sourceConfig.replicate.min_runs;
 
 	outer: for await (const batch of replicate.paginate(replicate.models.list)) {
 		if (posts.length >= limit) break;
 
 		for (const model of batch) {
-			if (!model.latest_version?.id || model.run_count < 10) continue;
+			if (!model.latest_version?.id || model.run_count < minRuns) continue;
 			if (new Date(model.latest_version.created_at) < oneWeekAgo) break outer;
 
 			posts.push({
@@ -33,15 +34,16 @@ export async function fetchReplicatePosts(env: Env): Promise<Post[]> {
 	return posts;
 }
 
-export async function fetchHuggingFacePosts(): Promise<Post[]> {
+export async function fetchHuggingFacePosts(sourceConfig: SourceConfig): Promise<Post[]> {
 	const resp = await fetch(
 		"https://huggingface.co/api/models?full=true&limit=5000&sort=lastModified&direction=-1"
 	);
 	const repos = (await resp.json()) as any[];
 	const posts: Post[] = [];
+	const { min_likes, min_downloads } = sourceConfig.huggingface;
 
 	for (const repo of repos) {
-		if (repo.likes < 5 || repo.downloads <= 1 || !repo.author) continue;
+		if (repo.likes < min_likes || repo.downloads < min_downloads || !repo.author) continue;
 
 		const repoIdInt = parseInt(repo._id.substring(10), 16);
 		const description = await getHuggingFaceRepoDescription(repo);
@@ -87,8 +89,9 @@ async function getHuggingFaceRepoDescription(repo: any): Promise<string> {
 	}
 }
 
-export async function fetchGitHubPosts(lastWeekDate: string): Promise<Post[]> {
+export async function fetchGitHubPosts(lastWeekDate: string, sourceConfig: SourceConfig): Promise<Post[]> {
 	const posts: Post[] = [];
+	const minStars = sourceConfig.github.min_stars;
 
 	for (let page = 1; page <= 5; page++) {
 		const resp = await fetch(
@@ -98,7 +101,7 @@ export async function fetchGitHubPosts(lastWeekDate: string): Promise<Post[]> {
 		const data = (await resp.json()) as any;
 
 		for (const repo of data.items || []) {
-			if (repo.stargazers_count < 10) continue;
+			if (repo.stargazers_count < minStars) continue;
 			posts.push({
 				id: repo.id.toString(),
 				source: "github",
@@ -116,11 +119,8 @@ export async function fetchGitHubPosts(lastWeekDate: string): Promise<Post[]> {
 	return posts;
 }
 
-export async function fetchRedditPosts(): Promise<Post[]> {
-	const subreddits = ["machinelearning", "localllama", "StableDiffusion"];
-	const flairFilters: Record<string, string[]> = {
-		StableDiffusion: ["News", "Resource | Update"],
-	};
+export async function fetchRedditPosts(sourceConfig: SourceConfig): Promise<Post[]> {
+	const { subreddits, min_score, flair_filters } = sourceConfig.reddit;
 	const posts: Post[] = [];
 
 	for (const subreddit of subreddits) {
@@ -134,8 +134,8 @@ export async function fetchRedditPosts(): Promise<Post[]> {
 			for (const thread of data.data?.children || []) {
 				const { title, author, subreddit: sub, score, created_utc, id, permalink, link_flair_text } = thread.data;
 
-				if (score < 20) continue;
-				const flairFilter = flairFilters[sub];
+				if (score < min_score) continue;
+				const flairFilter = flair_filters?.[sub];
 				if (flairFilter && !flairFilter.includes(link_flair_text)) continue;
 
 				posts.push({
