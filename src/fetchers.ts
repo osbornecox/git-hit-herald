@@ -13,7 +13,7 @@ export async function fetchReplicatePosts(env: Env): Promise<Post[]> {
 		if (posts.length >= limit) break;
 
 		for (const model of batch) {
-			if (!model.latest_version?.id || model.run_count <= 1) continue;
+			if (!model.latest_version?.id || model.run_count < 10) continue;
 			if (new Date(model.latest_version.created_at) < oneWeekAgo) break outer;
 
 			posts.push({
@@ -41,7 +41,7 @@ export async function fetchHuggingFacePosts(): Promise<Post[]> {
 	const posts: Post[] = [];
 
 	for (const repo of repos) {
-		if (repo.likes <= 1 || repo.downloads <= 1 || !repo.author) continue;
+		if (repo.likes < 5 || repo.downloads <= 1 || !repo.author) continue;
 
 		const repoIdInt = parseInt(repo._id.substring(10), 16);
 		const description = await getHuggingFaceRepoDescription(repo);
@@ -98,6 +98,7 @@ export async function fetchGitHubPosts(lastWeekDate: string): Promise<Post[]> {
 		const data = (await resp.json()) as any;
 
 		for (const repo of data.items || []) {
+			if (repo.stargazers_count < 10) continue;
 			posts.push({
 				id: repo.id.toString(),
 				source: "github",
@@ -133,6 +134,7 @@ export async function fetchRedditPosts(): Promise<Post[]> {
 			for (const thread of data.data?.children || []) {
 				const { title, author, subreddit: sub, score, created_utc, id, permalink, link_flair_text } = thread.data;
 
+				if (score < 20) continue;
 				const flairFilter = flairFilters[sub];
 				if (flairFilter && !flairFilter.includes(link_flair_text)) continue;
 

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Hype - ML/AI Новости</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<style>
+		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+		.relevance-high { border-left: 3px solid #22c55e; }
+		.relevance-medium { border-left: 3px solid #eab308; }
+		.relevance-low { border-left: 3px solid #6b7280; }
+	</style>
+</head>
+<body class="container mx-auto overflow-x-hidden bg-gray-50">
+	<main class="md:px-4">
+		<div class="flex justify-between items-center bg-indigo-600 px-4 py-3">
+			<a href="/" class="text-white font-bold hover:underline text-xl">Hype</a>
+			<span class="text-indigo-200 text-sm ml-2">Персональный ML/AI фид</span>
+			<div class="flex items-center ml-auto">
+				{{#filterLinks}}
+				{{^first}}<span class="text-indigo-300 sm:mx-4 mx-1">|</span>{{/first}}
+				<a href="/?filter={{key}}&sources={{sourcesParam}}" class="text-[0.9rem] text-white {{#active}}underline font-bold{{/active}}" data-navigate>{{label}}</a>
+				{{/filterLinks}}
+			</div>
+		</div>
+
+		<div class="text-xs flex justify-between items-center bg-white px-4 py-2 border-b">
+			<div class="flex items-center space-x-4">
+				{{#sources}}
+				<label class="inline-flex items-center cursor-pointer">
+					<input type="checkbox" class="form-checkbox accent-indigo-600" data-source="{{name}}" {{#checked}}checked{{/checked}}>
+					<span class="ml-2">{{name}}</span>
+				</label>
+				{{/sources}}
+			</div>
+			<span class="text-gray-500">Обновлено <span id="last-updated"></span></span>
+		</div>
+
+		<ul class="bg-white">
+			{{#posts}}
+			<li class="py-3 px-4 border-b hover:bg-gray-50 {{#has_russian}}{{#relevance_score}}{{#relevance_high}}relevance-high{{/relevance_high}}{{/relevance_score}}{{/has_russian}}">
+				<div class="flex items-start">
+					<span class="w-8 text-right mr-3 text-gray-400 font-mono text-sm pt-0.5">{{index}}.</span>
+					<div class="flex-1">
+						<div class="flex items-center flex-wrap gap-2">
+							<a href="{{url}}" target="_blank" rel="noopener noreferrer" class="text-indigo-700 hover:underline font-medium">{{displayName}}</a>
+							<span class="text-gray-500 text-xs">{{icon}} {{stars}}</span>
+							{{#relevance_score}}
+							<span class="text-xs px-2 py-0.5 rounded-full {{#has_russian}}bg-green-100 text-green-700{{/has_russian}}{{^has_russian}}bg-gray-100 text-gray-600{{/has_russian}}">
+								{{relevance_score}}
+							</span>
+							{{/relevance_score}}
+						</div>
+
+						{{#has_russian}}
+						<div class="mt-2 text-sm text-gray-700 bg-indigo-50 rounded p-3">
+							<p class="mb-1"><strong>{{summary_ru}}</strong></p>
+							<p class="text-gray-600 text-xs">{{relevance_ru}}</p>
+						</div>
+						{{/has_russian}}
+
+						{{^has_russian}}
+						<p class="text-gray-500 text-sm mt-1">{{description}}</p>
+						{{/has_russian}}
+					</div>
+				</div>
+			</li>
+			{{/posts}}
+		</ul>
+
+		{{^posts}}
+		<div class="text-center py-12 text-gray-500">
+			<p class="text-lg">Нет постов для отображения</p>
+			<p class="text-sm mt-2">Запустите <code class="bg-gray-100 px-2 py-1 rounded">npm run update</code> для загрузки данных</p>
+		</div>
+		{{/posts}}
+	</main>
+
+	<footer class="flex justify-center items-center py-4 border-t bg-white md:mx-4 mt-4">
+		<span class="text-gray-500 text-sm">Персональный фид на основе</span>
+		<a href="https://github.com/replicate/hype" target="_blank" rel="noopener noreferrer" class="text-indigo-600 text-sm hover:underline ml-1">Hype</a>
+	</footer>
+
+	<script>
+		const currentFilter = "{{filter}}";
+		const lastUpdatedTimestamp = {{lastUpdatedTimestamp}};
+
+		function timeSince(timestamp) {
+			if (!timestamp) return "никогда";
+			const seconds = Math.floor((Date.now() - timestamp) / 1000);
+			let interval = seconds / 31536000;
+			if (interval > 1) return Math.floor(interval) + " лет назад";
+			interval = seconds / 2592000;
+			if (interval > 1) return Math.floor(interval) + " мес. назад";
+			interval = seconds / 86400;
+			if (interval > 1) return Math.floor(interval) + " дн. назад";
+			interval = seconds / 3600;
+			if (interval > 1) return Math.floor(interval) + " ч. назад";
+			interval = seconds / 60;
+			if (interval > 1) return Math.floor(interval) + " мин. назад";
+			return Math.floor(seconds) + " сек. назад";
+		}
+
+		function updateLastUpdated() {
+			const el = document.getElementById('last-updated');
+			if (el) {
+				el.textContent = timeSince(lastUpdatedTimestamp);
+			}
+		}
+
+		updateLastUpdated();
+		setInterval(updateLastUpdated, 1000);
+
+		function getSelectedSources() {
+			return [...document.querySelectorAll('[data-source]:checked')].map(c => c.dataset.source);
+		}
+
+		function buildUrl(filter, sources) {
+			return '/?filter=' + filter + '&sources=' + sources.join(',');
+		}
+
+		async function navigate(url) {
+			document.querySelectorAll('[data-source]').forEach(cb => {
+				cb.disabled = true;
+				cb.parentElement.style.opacity = '0.5';
+			});
+			history.pushState(null, '', url);
+			const res = await fetch(url);
+			const html = await res.text();
+			const doc = new DOMParser().parseFromString(html, 'text/html');
+			document.body.innerHTML = doc.body.innerHTML;
+			attachListeners();
+		}
+
+		function attachListeners() {
+			document.querySelectorAll('[data-source]').forEach(cb => {
+				cb.addEventListener('change', () => {
+					navigate(buildUrl(currentFilter, getSelectedSources()));
+				});
+			});
+			document.querySelectorAll('[data-navigate]').forEach(a => {
+				a.addEventListener('click', (e) => {
+					e.preventDefault();
+					navigate(a.href);
+				});
+			});
+		}
+
+		window.addEventListener('popstate', () => navigate(location.href));
+		attachListeners();
+	</script>
+</body>
+</html>

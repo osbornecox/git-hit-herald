@@ -12,4 +12,21 @@ export interface Post {
 	description: string;
 	url: string;
 	created_at: string;
+
+	// LLM scoring fields
+	relevance_score?: number;      // 0.0 - 1.0
+	matched_interest?: string;     // which interest matched
+	summary_ru?: string;           // "Про что: ..."
+	relevance_ru?: string;         // "Почему в фиде: ..."
+	scored_at?: string;            // when LLM scored this post
+}
+
+export interface Interests {
+	profile: string;
+	interests: {
+		high: string[];
+		medium: string[];
+		low: string[];
+	};
+	exclude: string[];
 }
