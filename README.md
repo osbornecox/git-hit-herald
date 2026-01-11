@@ -206,14 +206,18 @@ data/
 
 ## LLM Providers
 
-Supports both **OpenAI** and **Anthropic** APIs. Set `LLM_PROVIDER` in `.env`:
+Supports **OpenAI** or **Anthropic** APIs. Set `LLM_PROVIDER` in `.env`:
 
 | Provider | Scoring (fast) | Enrichment (smart) |
 |----------|----------------|-------------------|
 | `openai` (default) | gpt-4.1-mini | gpt-4.1 |
 | `anthropic` | claude-3-5-haiku | claude-sonnet-4 |
 
-Models are configured in [src/llm/client.ts](src/llm/client.ts).
+Models and parameters are hardcoded in [src/llm/client.ts](src/llm/client.ts):
+- `callHaiku()` — scoring: max_tokens=256, temperature=0.2
+- `callSonnet()` — enrichment: max_tokens=512, temperature=0.5
+
+To use a different provider (Gemini, Mistral, etc.), modify `client.ts` directly.
 
 ## Telegram Setup
 
