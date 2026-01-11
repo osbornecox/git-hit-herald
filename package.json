@@ -5,24 +5,20 @@
 	"type": "module",
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.39.0",
-		"@hono/node-server": "^1.13.7",
 		"better-sqlite3": "^11.7.0",
-		"hono": "4.11.1",
-		"mustache": "^4.2.0",
+		"openai": "^6.16.0",
 		"replicate": "^0.20.0",
 		"yaml": "^2.7.0"
 	},
 	"devDependencies": {
 		"@types/better-sqlite3": "^7.6.12",
-		"@types/mustache": "^4.2.6",
 		"@types/node": "24.10.1",
 		"tsx": "^4.19.2",
 		"typescript": "5.9.3"
 	},
 	"scripts": {
 		"update": "tsx src/scheduled-local.ts",
-		"daemon": "tsx src/scheduled-local.ts --daemon",
 		"export": "tsx src/export.ts",
-		"serve": "tsx src/index-local.ts"
+		"telegram": "tsx src/telegram.ts"
 	}
 }

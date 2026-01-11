@@ -72,8 +72,9 @@ export function saveExports(): void {
 	exportToCSV();
 }
 
-// Run if called directly
-if (require.main === module) {
+// Run if called directly (ESM compatible)
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
 	saveExports();
 	posts.close();
 }

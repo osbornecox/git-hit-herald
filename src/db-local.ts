@@ -139,6 +139,12 @@ export const posts = {
 		return row?.last_updated || null;
 	},
 
+	getAll(): Post[] {
+		const database = getDb();
+		const stmt = database.prepare("SELECT * FROM posts ORDER BY relevance_score DESC, stars DESC");
+		return stmt.all() as Post[];
+	},
+
 	getUnscoredPosts(limit: number = 300): Post[] {
 		const database = getDb();
 		const oneWeekAgo = new Date();
@@ -186,6 +192,19 @@ export const posts = {
 			WHERE id = ? AND source = ?
 		`);
 		stmt.run(summary, relevance, id, source);
+	},
+
+	/**
+	 * Update post description (with README content)
+	 */
+	updateDescription(id: string, source: string, description: string): void {
+		const database = getDb();
+		const stmt = database.prepare(`
+			UPDATE posts
+			SET description = ?
+			WHERE id = ? AND source = ?
+		`);
+		stmt.run(description, id, source);
 	},
 
 	close(): void {

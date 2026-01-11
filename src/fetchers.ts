@@ -1,9 +1,9 @@
 import Replicate from "replicate";
-import type { Post, Env, SourceConfig } from "./types";
+import type { Post, SourceConfig } from "./types";
 import { hashStringToInt, truncateWithoutBreakingWords, base36ToInt } from "./utils";
 
-export async function fetchReplicatePosts(env: Env, sourceConfig: SourceConfig): Promise<Post[]> {
-	const replicate = new Replicate({ auth: env.REPLICATE_API_TOKEN });
+export async function fetchReplicatePosts(sourceConfig: SourceConfig): Promise<Post[]> {
+	const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
 	const posts: Post[] = [];
 	const limit = 1000;
 	const oneWeekAgo = new Date();

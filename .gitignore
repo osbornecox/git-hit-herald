@@ -32,9 +32,15 @@ yarn-error.log*
 # local config (personal data)
 config/config.yaml
 
-# local database
+# launchd plist (contains absolute paths)
+com.hypeseeker.update.plist
+
+# local database and exports
 data/*.db
 data/*.db-*
+data/*.csv
+data/*.json
+data/*.log
 
 # typescript
 *.tsbuildinfo

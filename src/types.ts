@@ -1,10 +1,3 @@
-// Environment variables for local mode
-export interface Env {
-	ANTHROPIC_API_KEY?: string;
-	REPLICATE_API_TOKEN?: string;
-	PORT?: string;
-}
-
 export interface Post {
 	id: string;
 	source: string;
@@ -50,7 +43,6 @@ export interface SourceConfig {
 	replicate: {
 		min_runs: number;
 	};
-	spam_keywords: string[];
 }
 
 // Full application config (loaded from config.yaml)

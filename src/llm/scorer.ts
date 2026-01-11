@@ -59,7 +59,7 @@ export async function scorePosts(
 	interests: Interests,
 	options: { batchSize?: number; delayMs?: number } = {}
 ): Promise<void> {
-	const { batchSize = 5, delayMs = 100 } = options;
+	const { batchSize = 10, delayMs = 500 } = options; // OpenAI has higher rate limits
 
 	console.log(`Scoring ${postsToScore.length} posts...`);
 
