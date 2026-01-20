@@ -138,8 +138,9 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 		}
 	}
 
-	// 5. LLM Enrichment (posts with score >= 70%)
-	const topPosts = db.getTopScoredPosts(0.7, 200);
+	// 5. LLM Enrichment (posts with score >= threshold)
+	const threshold = (config.min_score_for_digest ?? 70) / 100;
+	const topPosts = db.getTopScoredPosts(threshold, 200);
 	if (options.fetchOnly) {
 		console.log("\n[5/7] LLM Enrichment SKIPPED (--fetch-only)");
 		console.log(`  Would enrich ${topPosts.length} posts`);
@@ -161,7 +162,7 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 		console.log("\n[7/7] Telegram SKIPPED (--fetch-only)");
 	} else {
 		console.log("\n[7/7] Sending to Telegram...");
-		await sendDailyDigest();
+		await sendDailyDigest(threshold);
 	}
 
 	// Done

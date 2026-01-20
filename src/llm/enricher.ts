@@ -5,7 +5,6 @@ import { posts as db } from "../db-local";
 
 export interface EnrichmentResult {
 	summary: string;
-	relevance: string;
 }
 
 function buildEnrichmentPrompt(post: Post, config: Config): string {
@@ -28,15 +27,12 @@ function parseEnrichmentResponse(response: string): EnrichmentResult {
 		const jsonMatch = response.match(/\{[\s\S]*\}/);
 		if (jsonMatch) {
 			const parsed = JSON.parse(jsonMatch[0]);
-			return {
-				summary: parsed.summary || "",
-				relevance: parsed.relevance || "",
-			};
+			return { summary: parsed.summary || "" };
 		}
 	} catch (e) {
 		console.error("Failed to parse LLM enrichment response:", response);
 	}
-	return { summary: "", relevance: "" };
+	return { summary: "" };
 }
 
 export async function enrichPost(post: Post, config: Config): Promise<EnrichmentResult> {
@@ -47,7 +43,7 @@ export async function enrichPost(post: Post, config: Config): Promise<Enrichment
 		return parseEnrichmentResponse(response);
 	} catch (error) {
 		console.error(`Error enriching post ${post.id}:`, error);
-		return { summary: "", relevance: "" };
+		return { summary: "" };
 	}
 }
 
@@ -65,8 +61,8 @@ export async function enrichPosts(
 
 		const result = await enrichPost(post, config);
 
-		if (result.summary && result.relevance) {
-			db.updateEnrichment(post.id, post.source, result.summary, result.relevance);
+		if (result.summary) {
+			db.updateEnrichment(post.id, post.source, result.summary);
 			console.log(`  Enriched ${post.source}/${post.name}`);
 		} else {
 			console.log(`  Failed to enrich ${post.source}/${post.name}`);

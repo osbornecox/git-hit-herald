@@ -177,7 +177,7 @@ export async function callHaiku(prompt: string): Promise<string> {
 // Stronger model for enrichment (Sonnet equivalent)
 export async function callSonnet(prompt: string): Promise<string> {
 	if (LLM_PROVIDER === "openai") {
-		return callOpenAIWithRetry("gpt-4.1", 512, prompt, 0.5);
+		return callOpenAIWithRetry("gpt-5-mini", 512, prompt, 0.5);
 	}
 	return callAnthropicWithRetry("claude-sonnet-4-20250514", 512, prompt);
 }

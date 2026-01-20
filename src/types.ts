@@ -48,5 +48,6 @@ export interface SourceConfig {
 // Full application config (loaded from config.yaml)
 export interface Config extends Interests {
 	language: string;  // Language for enrichment (e.g., "ru", "en")
+	min_score_for_digest: number;  // Minimum score (0-100) for Telegram digest
 	sources: SourceConfig;
 }

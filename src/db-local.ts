@@ -184,14 +184,14 @@ export const posts = {
 		stmt.run(score, matchedInterest, new Date().toISOString(), id, source);
 	},
 
-	updateEnrichment(id: string, source: string, summary: string, relevance: string): void {
+	updateEnrichment(id: string, source: string, summary: string): void {
 		const database = getDb();
 		const stmt = database.prepare(`
 			UPDATE posts
-			SET summary = ?, relevance = ?
+			SET summary = ?
 			WHERE id = ? AND source = ?
 		`);
-		stmt.run(summary, relevance, id, source);
+		stmt.run(summary, id, source);
 	},
 
 	/**

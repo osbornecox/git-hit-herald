@@ -72,12 +72,12 @@ function formatPost(post: any, index: number): string {
 	return text;
 }
 
-export async function sendDailyDigest(): Promise<void> {
+export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 	const config = getConfig();
 
-	// Get posts with score >= 70%
+	// Get posts with score >= threshold
 	const topPosts = db.getAll()
-		.filter((p) => p.relevance_score != null && p.relevance_score >= 0.7)
+		.filter((p) => p.relevance_score != null && p.relevance_score >= minScore)
 		.sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
 
 	if (topPosts.length === 0) {
@@ -141,6 +141,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 	// Load .env
 	const fs = await import("fs");
 	const path = await import("path");
+	const yaml = await import("yaml");
+
 	const envPath = path.join(process.cwd(), ".env");
 	if (fs.existsSync(envPath)) {
 		const envContent = fs.readFileSync(envPath, "utf-8");
@@ -155,7 +157,13 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 		}
 	}
 
-	sendDailyDigest().then(() => {
+	// Load config for threshold
+	const configPath = path.join(process.cwd(), "config", "config.yaml");
+	const configContent = fs.readFileSync(configPath, "utf-8");
+	const appConfig = yaml.parse(configContent);
+	const threshold = (appConfig.min_score_for_digest ?? 70) / 100;
+
+	sendDailyDigest(threshold).then(() => {
 		db.close();
 		process.exit(0);
 	});

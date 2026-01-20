@@ -73,6 +73,9 @@ TELEGRAM_CHAT_ID=...
 # Format: ISO 639-1 code (en, ru, de, fr, es, zh, ja, etc.)
 language: en
 
+# Minimum score (0-100) for Telegram digest and enrichment
+min_score_for_digest: 70
+
 # Your profile (1-3 sentences)
 profile: |
   ML/AI engineer interested in practical applications.
@@ -165,15 +168,15 @@ The update pipeline runs 7 steps:
 2. **Save** — Store in SQLite database
 3. **README Fetch** — Get README for GitHub repos with short descriptions
 4. **Score** — LLM evaluates relevance (0-100%) based on your interests
-5. **Enrich** — LLM writes summaries for top posts (score >= 70%)
+5. **Enrich** — LLM writes summaries for top posts (score >= `min_score_for_digest`)
 6. **Export** — Save to CSV (data/feed.csv)
-7. **Telegram** — Send digest with posts scoring >= 70%
+7. **Telegram** — Send digest with posts scoring >= `min_score_for_digest`
 
 ## Output Formats
 
 | Format | Location | Description |
 |--------|----------|-------------|
-| Telegram | Your bot | Primary output — daily digest with top posts (score >= 70%) |
+| Telegram | Your bot | Primary output — daily digest with top posts (score >= `min_score_for_digest`) |
 | CSV | `data/feed.csv` | Backup export — all posts with scores (runs in parallel) |
 | SQLite | `data/posts.db` | Raw database |
 
@@ -210,7 +213,7 @@ Supports **OpenAI** or **Anthropic** APIs. Set `LLM_PROVIDER` in `.env`:
 
 | Provider | Scoring (fast) | Enrichment (smart) |
 |----------|----------------|-------------------|
-| `openai` (default) | gpt-4.1-mini | gpt-4.1 |
+| `openai` (default) | gpt-4.1-mini | gpt-5-mini |
 | `anthropic` | claude-3-5-haiku | claude-sonnet-4 |
 
 Models and parameters are hardcoded in [src/llm/client.ts](src/llm/client.ts):
