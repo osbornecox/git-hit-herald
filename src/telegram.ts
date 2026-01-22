@@ -75,9 +75,18 @@ function formatPost(post: any, index: number): string {
 export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 	const config = getConfig();
 
-	// Get posts with score >= threshold
+	// Get posts scored in the last 24 hours with score >= threshold
+	const oneDayAgo = new Date();
+	oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+	const cutoff = oneDayAgo.toISOString();
+
 	const topPosts = db.getAll()
-		.filter((p) => p.relevance_score != null && p.relevance_score >= minScore)
+		.filter((p) =>
+			p.relevance_score != null &&
+			p.relevance_score >= minScore &&
+			p.scored_at != null &&
+			p.scored_at >= cutoff
+		)
 		.sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
 
 	if (topPosts.length === 0) {

@@ -114,14 +114,21 @@ async function callOpenAIWithRetry(
 ): Promise<string> {
 	const client = getOpenAIClient();
 
+	// GPT-5 and reasoning models use different API params:
+	// - max_completion_tokens instead of max_tokens
+	// - no temperature support (only default 1)
+	// - use reasoning_effort instead (minimal/low/medium/high)
+	const isReasoningModel = model.startsWith("gpt-5") || model.startsWith("o1") || model.startsWith("o3");
+
 	for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
 		try {
 			const response = await client.chat.completions.create({
 				model,
-				max_tokens: maxTokens,
-				temperature,
+				...(isReasoningModel
+					? { max_completion_tokens: maxTokens, reasoning_effort: "low" }
+					: { max_tokens: maxTokens, temperature }),
 				messages: [{ role: "user", content: prompt }],
-			});
+			} as any);
 
 			return response.choices[0]?.message?.content || "";
 		} catch (error: any) {
