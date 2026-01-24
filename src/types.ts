@@ -14,6 +14,7 @@ export interface Post {
 	summary?: string;              // post summary in configured language
 	relevance?: string;            // relevance explanation in configured language
 	scored_at?: string;            // when LLM scored this post
+	sent_to_telegram_at?: string;  // when post was sent to Telegram (to prevent duplicates)
 }
 
 export interface Interests {

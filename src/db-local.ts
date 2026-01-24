@@ -32,6 +32,7 @@ function initSchema(): void {
 			summary TEXT,
 			relevance TEXT,
 			scored_at TEXT,
+			sent_to_telegram_at TEXT,
 			inserted_at TEXT DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (id, source)
 		);
@@ -40,6 +41,13 @@ function initSchema(): void {
 		CREATE INDEX IF NOT EXISTS idx_posts_relevance ON posts(relevance_score DESC);
 		CREATE INDEX IF NOT EXISTS idx_posts_source ON posts(source);
 	`);
+
+	// Migration: add sent_to_telegram_at column if it doesn't exist
+	const columns = database.prepare("PRAGMA table_info(posts)").all() as { name: string }[];
+	const hasSentColumn = columns.some(col => col.name === "sent_to_telegram_at");
+	if (!hasSentColumn) {
+		database.exec("ALTER TABLE posts ADD COLUMN sent_to_telegram_at TEXT");
+	}
 }
 
 const BANNED_STRINGS = ["nft", "crypto", "telegram", "clicker", "solana", "stealer"];
@@ -205,6 +213,37 @@ export const posts = {
 			WHERE id = ? AND source = ?
 		`);
 		stmt.run(description, id, source);
+	},
+
+	/**
+	 * Get posts that haven't been sent to Telegram yet
+	 */
+	getUnsentPosts(minScore: number = 0.7): Post[] {
+		const database = getDb();
+		const stmt = database.prepare(`
+			SELECT * FROM posts
+			WHERE relevance_score >= ?
+			  AND relevance_score IS NOT NULL
+			  AND sent_to_telegram_at IS NULL
+			ORDER BY relevance_score DESC, stars DESC
+		`);
+		return stmt.all(minScore) as Post[];
+	},
+
+	/**
+	 * Mark posts as sent to Telegram
+	 */
+	markAsSentToTelegram(posts: { id: string; source: string }[]): void {
+		const database = getDb();
+		const stmt = database.prepare(`
+			UPDATE posts
+			SET sent_to_telegram_at = ?
+			WHERE id = ? AND source = ?
+		`);
+		const now = new Date().toISOString();
+		for (const post of posts) {
+			stmt.run(now, post.id, post.source);
+		}
 	},
 
 	close(): void {

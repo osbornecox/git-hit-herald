@@ -75,22 +75,11 @@ function formatPost(post: any, index: number): string {
 export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 	const config = getConfig();
 
-	// Get posts scored in the last 24 hours with score >= threshold
-	const oneDayAgo = new Date();
-	oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-	const cutoff = oneDayAgo.toISOString();
-
-	const topPosts = db.getAll()
-		.filter((p) =>
-			p.relevance_score != null &&
-			p.relevance_score >= minScore &&
-			p.scored_at != null &&
-			p.scored_at >= cutoff
-		)
-		.sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
+	// Get posts that haven't been sent to Telegram yet
+	const topPosts = db.getUnsentPosts(minScore);
 
 	if (topPosts.length === 0) {
-		console.log("No posts to send");
+		console.log("No new posts to send");
 		return;
 	}
 
@@ -141,6 +130,9 @@ export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 	} else {
 		await sendMessage(config, message);
 	}
+
+	// Mark all sent posts as sent
+	db.markAsSentToTelegram(topPosts.map(p => ({ id: p.id, source: p.source })));
 
 	console.log(`Sent digest with ${topPosts.length} posts to Telegram`);
 }
