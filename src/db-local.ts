@@ -216,18 +216,22 @@ export const posts = {
 	},
 
 	/**
-	 * Get posts that haven't been sent to Telegram yet
+	 * Get posts that haven't been sent to Telegram yet (last 3 days only)
 	 */
 	getUnsentPosts(minScore: number = 0.7): Post[] {
 		const database = getDb();
+		const threeDaysAgo = new Date();
+		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
 		const stmt = database.prepare(`
 			SELECT * FROM posts
 			WHERE relevance_score >= ?
 			  AND relevance_score IS NOT NULL
 			  AND sent_to_telegram_at IS NULL
+			  AND created_at > ?
 			ORDER BY relevance_score DESC, stars DESC
 		`);
-		return stmt.all(minScore) as Post[];
+		return stmt.all(minScore, threeDaysAgo.toISOString()) as Post[];
 	},
 
 	/**

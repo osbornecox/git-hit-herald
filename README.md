@@ -1,8 +1,16 @@
 # HypeSeeker
 
-Personalized AI-filtered aggregator for ML/AI news.
+**Your personal AI news radar.**
 
-Collects posts from GitHub, HuggingFace, Reddit, and Replicate, filters them through LLM based on your interests, and delivers daily digest to Telegram.
+Define your interests once — get a daily feed of trending ML/AI posts tailored specifically for you. HypeSeeker scans GitHub, HuggingFace, Reddit, and Replicate, then uses an LLM to score each post against your profile. Only the most relevant stuff reaches your Telegram — no noise, no FOMO.
+
+## How It Works
+
+1. **You define your interests** in a simple YAML config (topics you care about, topics to ignore)
+2. **HypeSeeker fetches** fresh posts from multiple sources (new repos, trending models, hot discussions)
+3. **LLM scores each post** against your profile — high relevance gets high score
+4. **Top posts get summaries** written by a smarter model, explaining why they matter to you
+5. **Digest lands in Telegram** — only posts above your threshold, ready to read
 
 ## How It Differs from the Original
 
@@ -108,6 +116,11 @@ sources:
       - ClaudeAI
       - ChatGPTCoding
     min_score: 10
+    # Optional: filter by flair (only include posts with these flairs)
+    # flair_filters:
+    #   machinelearning:
+    #     - Research
+    #     - Project
   huggingface:
     min_likes: 5
     min_downloads: 1
@@ -159,6 +172,10 @@ crontab -e
 0 11 * * * cd /path/to/hypeseeker && npm run update
 0 18 * * * cd /path/to/hypeseeker && npm run update
 ```
+
+### Windows
+
+No built-in scheduler config provided. Use Task Scheduler manually or run via WSL with cron.
 
 ## Pipeline
 

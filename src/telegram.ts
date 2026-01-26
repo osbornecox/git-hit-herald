@@ -83,7 +83,7 @@ export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 		return;
 	}
 
-	const date = new Date().toLocaleDateString("ru-RU", {
+	const date = new Date().toLocaleDateString("en-US", {
 		day: "numeric",
 		month: "long",
 		year: "numeric",
@@ -99,7 +99,7 @@ export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 
 	const allPosts = db.getAll();
 	const scoredCount = allPosts.filter(p => p.relevance_score != null).length;
-	message += `\n📊 Отскорено: ${scoredCount} из ${allPosts.length} постов`;
+	message += `\n📊 Scored: ${scoredCount} of ${allPosts.length} posts`;
 
 	// Telegram has 4096 char limit, split if needed
 	if (message.length > 4000) {
@@ -121,7 +121,7 @@ export async function sendDailyDigest(minScore: number = 0.7): Promise<void> {
 			if (i + chunkSize >= posts.length) {
 				const all = db.getAll();
 				const scored = all.filter(p => p.relevance_score != null).length;
-				chunkMessage += `\n📊 Отскорено: ${scored} из ${all.length} постов`;
+				chunkMessage += `\n📊 Scored: ${scored} of ${all.length} posts`;
 			}
 
 			await sendMessage(config, chunkMessage);

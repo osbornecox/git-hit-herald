@@ -11,4 +11,5 @@ Modifications include:
 - Local-first architecture with SQLite storage
 - LLM-based relevance scoring and content enrichment
 - Personalized interest filtering via YAML configuration
-- Russian language summaries
+- Multi-language summaries (configurable via config.yaml)
+- Telegram delivery integration

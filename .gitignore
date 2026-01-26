@@ -1,53 +1,41 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-# testing
+# Build output
+/build
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# OS files
 .DS_Store
-*.pem
 
-# debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# local env files
+# Local env files (API keys, secrets)
 .env
 .env*.local
 
-# local config (personal data)
+# Local config (personal data)
 config/config.yaml
 
 # launchd plist (contains absolute paths)
 com.hypeseeker.update.plist
 
-# local database and exports
+# Local database and exports
 data/*.db
 data/*.db-*
 data/*.csv
 data/*.json
 data/*.log
 
-# typescript
+# TypeScript
 *.tsbuildinfo
-next-env.d.ts
 
-.log
-
-*.greger
-.dev.vars
-.wrangler/
+# Misc
+*.pem
