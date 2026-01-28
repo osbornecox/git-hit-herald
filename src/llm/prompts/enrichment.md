@@ -18,27 +18,24 @@ Write in {{language}} language.
 
 ## Your task:
 
-Summarize the key technical details from the description.
+Write a single paragraph (2-4 sentences) that:
+1. Starts with what the project IS (tool, library, framework, model, dataset)
+2. Explains what it DOES concretely
+3. Ends with WHY the user should care (practical application)
 
-CRITICAL RULES:
-- Only include information explicitly stated in the description
-- Do NOT invent features, integrations, or capabilities not mentioned
-- Do NOT guess what makes it unique — if the description is generic, your summary should be too
-- If the description lacks specifics, say: "Description lacks technical details."
+Flow naturally from description to relevance. No headers, no bullet points.
 
 ## Anti-patterns to AVOID:
-- Adding features not mentioned in the source — NO
 - "This is relevant because you're interested in..." — NO
-- Vague phrases like "modern approaches", "innovative solution", "useful for" — NO
-- Listing features every tool in this category has — NO
+- "As a product manager..." — NO
+- Vague phrases like "modern approaches", "innovative solution" — NO
+- Repeating matched_interest verbatim — NO
 
 ## Good examples:
 
-"CLI that converts natural language to shell commands using GPT-4. Works offline with Ollama."
+"CLI tool that converts natural language to shell commands using GPT-4. Supports bash, zsh, fish and works offline with local models. Faster than googling commands you forgot."
 
-"Multi-agent framework using shared memory graph. Compatible with CrewAI."
-
-"Description lacks technical details."
+"Multi-agent framework where agents communicate via shared memory graph. Agents can spawn sub-agents and share context. Drop-in replacement for CrewAI with better memory handling."
 
 Respond with ONLY valid JSON (no markdown):
 {"summary": "..."}
