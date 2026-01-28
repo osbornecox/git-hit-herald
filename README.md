@@ -69,9 +69,12 @@ LLM_PROVIDER=openai
 REPLICATE_API_TOKEN=r8_...
 GITHUB_TOKEN=ghp_...  # For higher rate limits when fetching README
 
-# Telegram (required for digest delivery)
+# Telegram (optional - for Telegram delivery)
 TELEGRAM_BOT_TOKEN=...
 TELEGRAM_CHAT_ID=...
+
+# Slack (optional - for Slack delivery)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
 
 ### config/config.yaml
@@ -132,54 +135,69 @@ sources:
 
 | Command | Description |
 |---------|-------------|
-| `npm run update` | Full pipeline: fetch → score → enrich → export → Telegram |
+| `npm run update` | Full pipeline: fetch → score → enrich → export → send |
+| `npm run daemon` | Start built-in scheduler (runs at configured times) |
 | `npm run telegram` | Send current digest to Telegram (no fetch/score) |
+| `npm run slack` | Send current digest to Slack (no fetch/score) |
 | `npm run export` | Export database to CSV |
 
 ## Scheduled Runs
 
-### macOS (launchd)
+### Option 1: Built-in Daemon (Recommended)
 
-A launchd plist template is included for scheduled runs:
+Works on all platforms (macOS, Linux, Windows). Configure times in `config.yaml`:
+
+```yaml
+schedule:
+  enabled: true
+  times:
+    - "09:00"
+    - "18:00"
+  timezone: "America/New_York"  # optional, defaults to system
+```
+
+Then run:
 
 ```bash
-# Create plist from example and update paths
+npm run daemon
+```
+
+The daemon will run in foreground and execute updates at configured times. Use `Ctrl+C` to stop.
+
+To run in background:
+- **macOS/Linux:** `nohup npm run daemon > daemon.log 2>&1 &`
+- **Windows:** Use `start /B npm run daemon` or run as a Windows Service
+
+### Option 2: System Scheduler
+
+#### macOS (launchd)
+
+```bash
 cp com.hypeseeker.update.plist.example com.hypeseeker.update.plist
-# Edit com.hypeseeker.update.plist — replace /path/to/hypeseeker with your actual path
-
-# Copy to LaunchAgents
+# Edit paths in plist file
 cp com.hypeseeker.update.plist ~/Library/LaunchAgents/
-
-# Load (activate)
 launchctl load ~/Library/LaunchAgents/com.hypeseeker.update.plist
-
-# Unload (deactivate)
-launchctl unload ~/Library/LaunchAgents/com.hypeseeker.update.plist
-
-# Check status
-launchctl list | grep hypeseeker
 ```
 
-Edit schedule times in `com.hypeseeker.update.plist` (default: 11:00 and 18:00).
-
-### Linux/Unix (cron)
+#### Linux (cron)
 
 ```bash
-# Edit crontab
 crontab -e
-
-# Add lines for 11:00 and 18:00
-0 11 * * * cd /path/to/hypeseeker && npm run update
-0 18 * * * cd /path/to/hypeseeker && npm run update
+# Add: 0 9,18 * * * cd /path/to/hypeseeker && npm run update
 ```
 
-### Windows
+#### Windows (Task Scheduler)
 
-No built-in scheduler config provided. Use Task Scheduler manually or run via WSL with cron.
+1. Open Task Scheduler → Create Basic Task
+2. Set trigger: Daily at your preferred time
+3. Set action: Start a program
+   - Program: `npm`
+   - Arguments: `run update`
+   - Start in: `C:\path\to\hypeseeker`
 
 ## Pipeline
 
-The update pipeline runs 7 steps:
+The update pipeline runs 8 steps:
 
 1. **Fetch** — Get posts from GitHub, HuggingFace, Reddit, Replicate
 2. **Save** — Store in SQLite database
@@ -187,14 +205,16 @@ The update pipeline runs 7 steps:
 4. **Score** — LLM evaluates relevance (0-100%) based on your interests
 5. **Enrich** — LLM writes summaries for top posts (score >= `min_score_for_digest`)
 6. **Export** — Save to CSV (data/feed.csv)
-7. **Telegram** — Send digest with posts scoring >= `min_score_for_digest`
+7. **Telegram** — Send digest to Telegram (if configured)
+8. **Slack** — Send digest to Slack (if configured)
 
 ## Output Formats
 
 | Format | Location | Description |
 |--------|----------|-------------|
-| Telegram | Your bot | Primary output — daily digest with top posts (score >= `min_score_for_digest`) |
-| CSV | `data/feed.csv` | Backup export — all posts with scores (runs in parallel) |
+| Telegram | Your bot | Daily digest with top posts (if `TELEGRAM_*` configured) |
+| Slack | Your channel | Daily digest with top posts (if `SLACK_WEBHOOK_URL` configured) |
+| CSV | `data/feed.csv` | Backup export — all posts with scores |
 | SQLite | `data/posts.db` | Raw database |
 
 ## Project Structure
@@ -202,9 +222,11 @@ The update pipeline runs 7 steps:
 ```
 src/
 ├── scheduled-local.ts  # Update orchestration
+├── daemon.ts           # Built-in scheduler
 ├── db-local.ts         # SQLite storage
 ├── fetchers.ts         # Data fetchers (GitHub, Reddit, HF, Replicate)
 ├── telegram.ts         # Telegram bot integration
+├── slack.ts            # Slack webhook integration
 ├── readme-fetcher.ts   # GitHub README fetcher
 ├── export.ts           # CSV export
 ├── types.ts            # TypeScript interfaces
@@ -246,6 +268,16 @@ To use a different provider (Gemini, Mistral, etc.), modify `client.ts` directly
 3. Send any message to your bot to activate it
 4. Get your chat ID: send message to bot, then visit `https://api.telegram.org/bot<TOKEN>/getUpdates`
 5. Copy `chat.id` to `.env` as `TELEGRAM_CHAT_ID`
+
+## Slack Setup
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → "From scratch"
+2. Enter app name (e.g., "HypeSeeker") and select your workspace
+3. In the left menu: **Incoming Webhooks** → Enable the toggle
+4. Click **Add New Webhook to Workspace** → Select a channel
+5. Copy the Webhook URL to `.env` as `SLACK_WEBHOOK_URL`
+
+You can use both Telegram and Slack simultaneously — each has independent tracking of sent posts.
 
 ## Spam Filtering
 

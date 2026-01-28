@@ -15,6 +15,7 @@ export interface Post {
 	relevance?: string;            // relevance explanation in configured language
 	scored_at?: string;            // when LLM scored this post
 	sent_to_telegram_at?: string;  // when post was sent to Telegram (to prevent duplicates)
+	sent_to_slack_at?: string;     // when post was sent to Slack (to prevent duplicates)
 }
 
 export interface Interests {
@@ -46,9 +47,17 @@ export interface SourceConfig {
 	};
 }
 
+// Schedule configuration
+export interface ScheduleConfig {
+	enabled: boolean;
+	times: string[];  // Array of times in HH:MM format, e.g. ["09:00", "18:00"]
+	timezone?: string;  // IANA timezone, e.g. "America/New_York", defaults to system
+}
+
 // Full application config (loaded from config.yaml)
 export interface Config extends Interests {
 	language: string;  // Language for enrichment (e.g., "ru", "en")
 	min_score_for_digest: number;  // Minimum score (0-100) for Telegram digest
 	sources: SourceConfig;
+	schedule?: ScheduleConfig;  // Optional built-in scheduler
 }

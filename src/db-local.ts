@@ -44,9 +44,16 @@ function initSchema(): void {
 
 	// Migration: add sent_to_telegram_at column if it doesn't exist
 	const columns = database.prepare("PRAGMA table_info(posts)").all() as { name: string }[];
-	const hasSentColumn = columns.some(col => col.name === "sent_to_telegram_at");
-	if (!hasSentColumn) {
+	const hasSentTelegramColumn = columns.some(col => col.name === "sent_to_telegram_at");
+	if (!hasSentTelegramColumn) {
 		database.exec("ALTER TABLE posts ADD COLUMN sent_to_telegram_at TEXT");
+	}
+
+	// Migration: add sent_to_slack_at column if it doesn't exist
+	const columnsAfterTelegram = database.prepare("PRAGMA table_info(posts)").all() as { name: string }[];
+	const hasSentSlackColumn = columnsAfterTelegram.some(col => col.name === "sent_to_slack_at");
+	if (!hasSentSlackColumn) {
+		database.exec("ALTER TABLE posts ADD COLUMN sent_to_slack_at TEXT");
 	}
 }
 
@@ -242,6 +249,41 @@ export const posts = {
 		const stmt = database.prepare(`
 			UPDATE posts
 			SET sent_to_telegram_at = ?
+			WHERE id = ? AND source = ?
+		`);
+		const now = new Date().toISOString();
+		for (const post of posts) {
+			stmt.run(now, post.id, post.source);
+		}
+	},
+
+	/**
+	 * Get posts that haven't been sent to Slack yet (last 3 days only)
+	 */
+	getUnsentSlackPosts(minScore: number = 0.7): Post[] {
+		const database = getDb();
+		const threeDaysAgo = new Date();
+		threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+		const stmt = database.prepare(`
+			SELECT * FROM posts
+			WHERE relevance_score >= ?
+			  AND relevance_score IS NOT NULL
+			  AND sent_to_slack_at IS NULL
+			  AND created_at > ?
+			ORDER BY relevance_score DESC, stars DESC
+		`);
+		return stmt.all(minScore, threeDaysAgo.toISOString()) as Post[];
+	},
+
+	/**
+	 * Mark posts as sent to Slack
+	 */
+	markAsSentToSlack(posts: { id: string; source: string }[]): void {
+		const database = getDb();
+		const stmt = database.prepare(`
+			UPDATE posts
+			SET sent_to_slack_at = ?
 			WHERE id = ? AND source = ?
 		`);
 		const now = new Date().toISOString();

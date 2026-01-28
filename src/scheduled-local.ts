@@ -4,6 +4,7 @@ import { scorePosts } from "./llm/scorer";
 import { enrichPosts } from "./llm/enricher";
 import { fetchReadmesForPosts } from "./readme-fetcher";
 import { sendDailyDigest } from "./telegram";
+import { sendSlackDigest } from "./slack";
 import type { Post, Config } from "./types";
 import * as fs from "fs";
 import * as path from "path";
@@ -45,10 +46,10 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 
 	// 1. Fetch from all sources (skip if --score-only)
 	if (options.scoreOnly) {
-		console.log("\n[1/7] Fetching SKIPPED (--score-only)");
-		console.log("\n[2/7] Saving SKIPPED (--score-only)");
+		console.log("\n[1/8] Fetching SKIPPED (--score-only)");
+		console.log("\n[2/8] Saving SKIPPED (--score-only)");
 	} else {
-		console.log("\n[1/7] Fetching posts from sources...");
+		console.log("\n[1/8] Fetching posts from sources...");
 
 		const [huggingFacePosts, gitHubPosts, redditPosts, replicatePosts] = await Promise.all([
 			fetchHuggingFacePosts(config.sources).catch((e) => {
@@ -77,7 +78,7 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 		console.log(`    - Replicate: ${replicatePosts.length}`);
 
 		// 2. Save to SQLite (without LLM scores yet)
-		console.log("\n[2/7] Saving to SQLite...");
+		console.log("\n[2/8] Saving to SQLite...");
 		for (const post of allPosts) {
 			try {
 				db.upsert(post);
@@ -96,10 +97,10 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 	);
 
 	if (options.fetchOnly) {
-		console.log(`\n[3/7] README Fetch SKIPPED (--fetch-only)`);
+		console.log(`\n[3/8] README Fetch SKIPPED (--fetch-only)`);
 		console.log(`  Would fetch README for ${githubPostsNeedingReadme.length} GitHub posts`);
 	} else if (githubPostsNeedingReadme.length > 0) {
-		console.log(`\n[3/7] Fetching README for GitHub posts...`);
+		console.log(`\n[3/8] Fetching README for GitHub posts...`);
 		console.log(`  ${githubPostsNeedingReadme.length} posts need README`);
 
 		const postsForReadme = githubPostsNeedingReadme.map((p) => ({ id: p.id, url: p.url }));
@@ -120,7 +121,7 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 		}
 		console.log(`  Updated ${updatedCount} posts with README content`);
 	} else {
-		console.log(`\n[3/7] README Fetch SKIPPED (no posts need README)`);
+		console.log(`\n[3/8] README Fetch SKIPPED (no posts need README)`);
 	}
 
 	// Refresh unscored posts (now with README in description)
@@ -128,10 +129,10 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 
 	// 4. LLM Scoring
 	if (options.fetchOnly) {
-		console.log("\n[4/7] LLM Scoring SKIPPED (--fetch-only)");
+		console.log("\n[4/8] LLM Scoring SKIPPED (--fetch-only)");
 		console.log(`  Would score ${postsToScore.length} posts`);
 	} else {
-		console.log("\n[4/7] LLM Scoring (unscored posts)...");
+		console.log("\n[4/8] LLM Scoring (unscored posts)...");
 		console.log(`  Found ${postsToScore.length} unscored posts`);
 		if (postsToScore.length > 0) {
 			await scorePosts(postsToScore, config, { batchSize: 10, delayMs: 500 });
@@ -142,10 +143,10 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 	const threshold = (config.min_score_for_digest ?? 70) / 100;
 	const topPosts = db.getTopScoredPosts(threshold, 200);
 	if (options.fetchOnly) {
-		console.log("\n[5/7] LLM Enrichment SKIPPED (--fetch-only)");
+		console.log("\n[5/8] LLM Enrichment SKIPPED (--fetch-only)");
 		console.log(`  Would enrich ${topPosts.length} posts`);
 	} else {
-		console.log("\n[5/7] LLM Enrichment (top posts)...");
+		console.log("\n[5/8] LLM Enrichment (top posts)...");
 		console.log(`  Found ${topPosts.length} top posts needing enrichment`);
 		if (topPosts.length > 0) {
 			await enrichPosts(topPosts, config, { delayMs: 500 });
@@ -153,16 +154,24 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 	}
 
 	// 6. Export
-	console.log("\n[6/7] Exporting...");
+	console.log("\n[6/8] Exporting...");
 	const { saveExports } = await import("./export");
 	saveExports();
 
 	// 7. Send to Telegram
 	if (options.fetchOnly) {
-		console.log("\n[7/7] Telegram SKIPPED (--fetch-only)");
+		console.log("\n[7/8] Telegram SKIPPED (--fetch-only)");
 	} else {
-		console.log("\n[7/7] Sending to Telegram...");
+		console.log("\n[7/8] Sending to Telegram...");
 		await sendDailyDigest(threshold);
+	}
+
+	// 8. Send to Slack
+	if (options.fetchOnly) {
+		console.log("\n[8/8] Slack SKIPPED (--fetch-only)");
+	} else {
+		console.log("\n[8/8] Sending to Slack...");
+		await sendSlackDigest(threshold);
 	}
 
 	// Done
@@ -180,18 +189,19 @@ export async function updateContentLocal(options: { fetchOnly?: boolean; scoreOn
 	console.log("\nSummary:", JSON.stringify(stats, null, 2));
 }
 
-// Parse command line args
-const args = process.argv.slice(2);
-const isFetchOnly = args.includes("--fetch-only");
-const isScoreOnly = args.includes("--score-only");
+// CLI: run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+	const args = process.argv.slice(2);
+	const isFetchOnly = args.includes("--fetch-only");
+	const isScoreOnly = args.includes("--score-only");
 
-// Run
-updateContentLocal({ fetchOnly: isFetchOnly, scoreOnly: isScoreOnly })
-	.then(() => {
-		db.close();
-		process.exit(0);
-	})
-	.catch((err) => {
-		console.error("Update failed:", err);
-		process.exit(1);
-	});
+	updateContentLocal({ fetchOnly: isFetchOnly, scoreOnly: isScoreOnly })
+		.then(() => {
+			db.close();
+			process.exit(0);
+		})
+		.catch((err) => {
+			console.error("Update failed:", err);
+			process.exit(1);
+		});
+}
