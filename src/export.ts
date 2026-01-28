@@ -41,7 +41,6 @@ export function exportToCSV(): void {
 		"relevance_score",
 		"matched_interest",
 		"summary",
-		"relevance",
 		"scored_at",
 	];
 
@@ -57,7 +56,6 @@ export function exportToCSV(): void {
 		p.relevance_score?.toFixed(2) || "",
 		escapeCsv(p.matched_interest),
 		escapeCsv(p.summary),
-		escapeCsv(p.relevance),
 		escapeCsv(p.scored_at),
 	].join(","));
 

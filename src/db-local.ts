@@ -118,15 +118,14 @@ export const posts = {
 	upsert(post: Post): void {
 		const database = getDb();
 		const stmt = database.prepare(`
-			INSERT INTO posts (id, source, username, name, stars, description, url, created_at, relevance_score, matched_interest, summary, relevance, scored_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			INSERT INTO posts (id, source, username, name, stars, description, url, created_at, relevance_score, matched_interest, summary, scored_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT(id, source) DO UPDATE SET
 				stars = excluded.stars,
 				description = excluded.description,
 				relevance_score = COALESCE(excluded.relevance_score, relevance_score),
 				matched_interest = COALESCE(excluded.matched_interest, matched_interest),
 				summary = COALESCE(excluded.summary, summary),
-				relevance = COALESCE(excluded.relevance, relevance),
 				scored_at = COALESCE(excluded.scored_at, scored_at)
 		`);
 
@@ -142,7 +141,6 @@ export const posts = {
 			post.relevance_score || null,
 			post.matched_interest || null,
 			post.summary || null,
-			post.relevance || null,
 			post.scored_at || null
 		);
 	},

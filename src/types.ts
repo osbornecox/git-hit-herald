@@ -12,7 +12,6 @@ export interface Post {
 	relevance_score?: number;      // 0.0 - 1.0
 	matched_interest?: string;     // which interest matched
 	summary?: string;              // post summary in configured language
-	relevance?: string;            // relevance explanation in configured language
 	scored_at?: string;            // when LLM scored this post
 	sent_to_telegram_at?: string;  // when post was sent to Telegram (to prevent duplicates)
 	sent_to_slack_at?: string;     // when post was sent to Slack (to prevent duplicates)
