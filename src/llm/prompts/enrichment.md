@@ -21,7 +21,6 @@ Write in {{language}} language.
 Write a single paragraph (2-4 sentences) that:
 1. Starts with what the project IS (tool, library, framework, model, dataset)
 2. Explains what it DOES concretely
-3. Ends with WHY the user should care (practical application)
 
 Flow naturally from description to relevance. No headers, no bullet points.
 
